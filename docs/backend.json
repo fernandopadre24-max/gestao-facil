@@ -1,0 +1,279 @@
+{
+  "entities": {
+    "Borrower": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Borrower",
+      "type": "object",
+      "description": "Represents a borrower in the lending management application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the borrower."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the borrower."
+        },
+        "cpf": {
+          "type": "string",
+          "description": "CPF (Cadastro de Pessoas Físicas) of the borrower. A Brazilian tax identifier number.",
+          "format": "string"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the borrower.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Phone number of the borrower."
+        },
+        "creditScore": {
+          "type": "number",
+          "description": "Credit score of the borrower, obtained from the AI credit risk analysis."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "cpf",
+        "email",
+        "phoneNumber"
+      ]
+    },
+    "Loan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Loan",
+      "type": "object",
+      "description": "Represents a loan issued to a borrower.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the loan."
+        },
+        "borrowerId": {
+          "type": "string",
+          "description": "Reference to Borrower. (Relationship: Borrower 1:N Loan)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The principal amount of the loan."
+        },
+        "interestRate": {
+          "type": "number",
+          "description": "The interest rate applied to the loan (e.g., 0.05 for 5%)."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The date when the loan was issued.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The date when the loan is expected to be fully paid.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the loan (e.g., 'active', 'paid', 'overdue')."
+        }
+      },
+      "required": [
+        "id",
+        "borrowerId",
+        "amount",
+        "interestRate",
+        "startDate",
+        "endDate",
+        "status"
+      ]
+    },
+    "Payment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Payment",
+      "type": "object",
+      "description": "Represents a payment made towards a loan.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the payment."
+        },
+        "loanId": {
+          "type": "string",
+          "description": "Reference to Loan. (Relationship: Loan 1:N Payment)"
+        },
+        "paymentDate": {
+          "type": "string",
+          "description": "The date when the payment was made.",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount paid."
+        }
+      },
+      "required": [
+        "id",
+        "loanId",
+        "paymentDate",
+        "amount"
+      ]
+    },
+    "Alert": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Alert",
+      "type": "object",
+      "description": "Represents an alert related to a loan payment.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the alert."
+        },
+        "loanId": {
+          "type": "string",
+          "description": "Reference to Loan. (Relationship: Loan 1:N Alert)"
+        },
+        "alertType": {
+          "type": "string",
+          "description": "The type of alert (e.g., 'due_date_reminder', 'overdue')."
+        },
+        "alertDate": {
+          "type": "string",
+          "description": "The date when the alert was generated.",
+          "format": "date-time"
+        },
+        "message": {
+          "type": "string",
+          "description": "The message content of the alert."
+        },
+        "isSent": {
+          "type": "boolean",
+          "description": "Flag indicating whether the alert has been sent to the borrower."
+        }
+      },
+      "required": [
+        "id",
+        "loanId",
+        "alertType",
+        "alertDate",
+        "message",
+        "isSent"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/borrowers/{borrowerId}",
+        "definition": {
+          "entityName": "Borrower",
+          "schema": {
+            "$ref": "#/backend/entities/Borrower"
+          },
+          "description": "Stores borrower information. Only the authenticated user (or admin) can access their own borrower data. Path based ownership for borrower's access control.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the authenticated user."
+            },
+            {
+              "name": "borrowerId",
+              "description": "The ID of the borrower."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/loans/{loanId}",
+        "definition": {
+          "entityName": "Loan",
+          "schema": {
+            "$ref": "#/backend/entities/Loan"
+          },
+          "description": "Stores loan information associated with a specific user.  Path-based ownership for user's loans access control.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the authenticated user."
+            },
+            {
+              "name": "loanId",
+              "description": "The ID of the loan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/loans/{loanId}/payments/{paymentId}",
+        "definition": {
+          "entityName": "Payment",
+          "schema": {
+            "$ref": "#/backend/entities/Payment"
+          },
+          "description": "Stores payment information related to a specific loan. Inherits loanId and userId for path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the authenticated user."
+            },
+            {
+              "name": "loanId",
+              "description": "The ID of the loan."
+            },
+            {
+              "name": "paymentId",
+              "description": "The ID of the payment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/loans/{loanId}/alerts/{alertId}",
+        "definition": {
+          "entityName": "Alert",
+          "schema": {
+            "$ref": "#/backend/entities/Alert"
+          },
+          "description": "Stores alert information related to a specific loan. Inherits loanId and userId for path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the authenticated user."
+            },
+            {
+              "name": "loanId",
+              "description": "The ID of the loan."
+            },
+            {
+              "name": "alertId",
+              "description": "The ID of the alert."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{adminId}",
+        "definition": {
+          "entityName": "admin",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Documents in this collection represent admin users. Existence of a document indicates admin role.",
+          "params": [
+            {
+              "name": "adminId",
+              "description": "The ID of the admin user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to manage loans, borrowers, payments, and alerts for the 'Gestão Fácil' application, prioritizing security, scalability, and ease of debugging. The design incorporates Authorization Independence via denormalization, Structural Segregation, and Access Modeling. Since all data is private, path-based ownership is favored. The structure is optimized for listing operations (QAPs) via structural segregation.\n\n**Authorization Independence:**\n\n*   The `Loan` documents are stored within `/users/{userId}/loans/{loanId}`, thus are owned by `userId`. The `Payment` and `Alert` subcollections are stored under each `Loan`, which inherit the parent `loanId` and grand-parent `userId` for granular access control. The `borrowers` collection could be accessed by admins, for instance, stored under `/roles_admin/{adminId}/borrowers`. This way, we guarantee that no `get()` operations are required to check permissions.\n\n**Structural Segregation:**\n\n*   All entities are segregated into distinct collections and subcollections based on their access requirements. This ensures that all documents within a collection share the same security rules, simplifying the rule definitions.\n\n**Access Modeling:**\n\n*   **Path-Based Ownership:** User-owned data (loans, payments, alerts) are stored in hierarchical paths under `/users/{userId}`. This makes it straightforward to secure data based on user ownership.\n\n**QAPs Support:**\n\n*   The segregated structure enables secure list operations. For instance, listing all loans for a user involves querying the `/users/{userId}/loans` collection, and the security rules can easily enforce that only the user can access their own loans. Admin collections are also separated and can be secured by checking the role collection with the user ID. The data denormalization ensures that list operations do not require fetching related documents, maintaining security and performance."
+  }
+}
