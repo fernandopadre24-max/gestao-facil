@@ -144,6 +144,29 @@ export function NewLoanDialog({ isOpen, onOpenChange, loanToEdit, onConfirm }: N
   const selectedClientId = form.watch('clientId');
   const selectedClient = clients.find(c => c.id === selectedClientId);
 
+  const watchedAmount = form.watch('amount');
+  const watchedInstallments = form.watch('installments');
+  const watchedInterestRate = form.watch('interestRate');
+  const watchedIofValue = form.watch('iofValue');
+
+  const simulation = React.useMemo(() => {
+    const pv = Number(watchedAmount) || 0;
+    const n = Number(watchedInstallments) || 0;
+    const i = (Number(watchedInterestRate) || 0) / 100;
+    const iof = Number(watchedIofValue) || 0;
+    if (pv <= 0 || n <= 0) return null;
+    const totalPv = pv + iof;
+    let installmentValue: number;
+    if (i === 0) {
+      installmentValue = totalPv / n;
+    } else {
+      installmentValue = totalPv * (i * Math.pow(1 + i, n)) / (Math.pow(1 + i, n) - 1);
+    }
+    const totalToPay = installmentValue * n;
+    const totalInterest = totalToPay - totalPv;
+    return { installmentValue, totalToPay, totalInterest, n };
+  }, [watchedAmount, watchedInstallments, watchedInterestRate, watchedIofValue]);
+
   function onSubmit(values: z.infer<typeof refinedSchema>) {
     const borrowerName = values.isNewClient ? values.borrowerName : clients.find(c => c.id === values.clientId)?.name;
 
@@ -431,6 +454,27 @@ export function NewLoanDialog({ isOpen, onOpenChange, loanToEdit, onConfirm }: N
                 )}
               />
             </div>
+
+            {simulation && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">Simulação</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center space-y-1">
+                    <p className="text-xs text-muted-foreground">Valor da Parcela</p>
+                    <p className="text-lg font-bold text-primary">{formatCurrency(simulation.installmentValue)}</p>
+                    <p className="text-xs text-muted-foreground">{simulation.n}x</p>
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-xs text-muted-foreground">Total a Pagar</p>
+                    <p className="text-lg font-bold">{formatCurrency(simulation.totalToPay)}</p>
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-xs text-muted-foreground">Total de Juros</p>
+                    <p className="text-lg font-bold text-destructive">{formatCurrency(simulation.totalInterest)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <DialogFooter className="pt-6">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
