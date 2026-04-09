@@ -141,6 +141,8 @@ export function NewLoanDialog({ isOpen, onOpenChange, loanToEdit, onConfirm }: N
   }, [isOpen, isEditMode, loanToEdit, form, clients]);
 
   const isNewClient = form.watch('isNewClient');
+  const selectedClientId = form.watch('clientId');
+  const selectedClient = clients.find(c => c.id === selectedClientId);
 
   function onSubmit(values: z.infer<typeof refinedSchema>) {
     const borrowerName = values.isNewClient ? values.borrowerName : clients.find(c => c.id === values.clientId)?.name;
@@ -283,6 +285,26 @@ export function NewLoanDialog({ isOpen, onOpenChange, loanToEdit, onConfirm }: N
                     </FormItem>
                     )}
                 />
+                {selectedClient && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-md border p-4 bg-muted/30">
+                        <div className="space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground">CPF</p>
+                            <p className="text-sm font-medium">
+                                {selectedClient.cpf
+                                    ? selectedClient.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+                                    : <span className="text-muted-foreground italic">Não informado</span>
+                                }
+                            </p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground">Endereço</p>
+                            <p className="text-sm font-medium">
+                                {selectedClient.address || <span className="text-muted-foreground italic">Não informado</span>}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
             )}
 
             <Separator />
